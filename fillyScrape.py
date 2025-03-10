@@ -4,8 +4,16 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import os
+import datetime
 
 base_url = r'https://a.4cdn.org/vt/thread/{}.json'
+
+
+def time_print(s):
+
+    now = datetime.datetime.now()
+    t = now.strftime("%Y-%m-%d %H:%M:%S")
+    print(t + "\t" + s)
 
 
 def most_recent_op_number():
@@ -31,18 +39,20 @@ def get_thread_json(postno):
     if resp.status_code == 200:
         return resp.json()
     else:
-        print(f"Error getting JSON for {postno}")  # will fail if we found a link to a non-OP post
+        time_print(f"Error getting JSON for {postno}")  # will fail if we found a link to a non-OP post
 
 
 def find_next_thread(js):
 
     '''Step through the posts in a thread JSON, starting at the end and working backwards, and find the first one that leads to a new thread.
     We assume this is the next thread in the chain'''
+    
+    if not js.get("posts", None):
+        time_print("JSON didn't contain any posts, maybe the thread ID is invalid? Bailing out.")
 
     for post in js["posts"][::-1]:  # step through backwards
         content = (post.get("com", None))  #  the HTML of the comment, it's not guaranteed to be there though, might just be a pic
         if content:
-            #print(content)
             soup = BeautifulSoup(content, "html.parser")
             lnks = (soup.find_all("a"))  # want to further narrow down to quotelinks, and find one that leads to a new OP
             for l in lnks:
@@ -54,7 +64,7 @@ def find_next_thread(js):
                         return hr[-8:]  # tiny chance someone might link to irrelevant thread last thing, just ignore that for now
                         # we are just returning the post number assuming the structure is consistent, it should be
     
-    print("No link to a new thread found.")
+    time_print("No link to a new thread found.")
 
 
 def update():
@@ -62,18 +72,26 @@ def update():
     hi = most_recent_op_number()  # pick up where we left off
     
     with open(f"{hi}.json", "r") as f:
-        old_js = json.load(f)
+        try:
+            old_js = json.load(f)
+        except json.decoder.JSONDecodeError:
+            time_print("file JSON is not valid, probably a jump-start file.")
+            old_js = None  # just need something to compare with the new JSON
     
     js = get_thread_json(hi)  # download the thread
     
     if js == old_js:  # the thread hasn't changed since we last checked it, assume it's finished
-        print(f"Thread {hi} looks to be complete, finding next thread")
+        time_print(f"Thread {hi} looks to be complete, finding next thread")
         new_op = find_next_thread(js)
         
         if not new_op:
             return  # the find next thread function will log the error but we'll need to manually fix the process
         else:
-            print(f"Found a daughter thread: {new_op}")
+            if int(new_op) > hi:
+                time_print(f"Found a daughter thread: {new_op}")
+            else:
+                time_print("Found a daughter thread with an earlier post number, ignoring. Maybe thread is quiet.")
+                return  # bail early rather than write spurious json, we'll check again later
             
         new_js = get_thread_json(new_op)  # download the first version of this new thread we found
 
@@ -82,12 +100,12 @@ def update():
         
         with open(f"{new_op}.json", "w") as f:
             json.dump(new_js, f)  # update the file with the most recent thread json
-            print(f"Wrote a .json file for thread OP {new_op}")
+            time_print(f"Wrote a .json file for thread OP {new_op}")
             
     else:  # thread is still active
         with open(f"{hi}.json", "w") as f:
             json.dump(js, f)  # update the file with the most recent thread json
-            print(f"Thread {hi} seems still active, updated the .json")
+            time_print(f"Thread {hi} seems still active, updated the .json")
             
             
 if __name__ == "__main__":
