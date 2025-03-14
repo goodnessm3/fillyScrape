@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Clips</title>
+    <title>Filian soundposts</title>
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -13,6 +13,10 @@
             margin: 0; 
             padding: 20px;
         }
+
+        h1 {
+            font-size: 60px;
+        }
         h1, h2 { margin: 10px 0; }
         .gallery { 
             display: grid; 
@@ -21,6 +25,11 @@
             max-width: 900px; 
             margin: auto; 
         }
+
+        h6 {
+            padding: 0 px;
+        }
+
         .video-container { 
             position: relative; 
             cursor: pointer; 
@@ -52,17 +61,104 @@
             padding: 5px;
             display: inline-block;
         }
+
+        .popup-video {
+            position: absolute;
+            width: 160px;
+            height: 160px;
+            display: none; /* Hidden by default */
+            border: 2px solid white;
+            border-radius: 5px;
+            background-color: black;
+            z-index: 1000; /* Ensures it appears above everything */
+        }
+
+        .popup-link {
+            color: #1E1E1E;
+            text-decoration: none;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 10px 20px;
+            border-radius: 5px;
+            background-color: #000;
+            max-width: 30%;
+            margin: auto;
+
+        }
+
+        .popup-link:hover {
+            background-color: #333;
+        }
+
+        .about-link {
+            color: #F2F2F2;
+            text-decoration: none;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 10px 20px;
+            border-radius: 5px;
+            background-color: #000;
+            max-width: 20%;
+            margin: auto;
+        }
+
+        .about-link:hover {
+            background-color: #555;
+        }
+
+        .about-box {
+            position: absolute;
+            padding: 20px;
+            background-color: #333;
+            color: white;
+            border-radius: 5px;
+            display: none; /* Hidden by default */
+            z-index: 1000; /* Ensure it appears above other content */
+        }
+
+        .about-box button {
+            background-color: #000;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .about-box button:hover {
+            background-color: #555;
+        }
+
+        a {
+            display: block;
+            margin-bottom: 10px; /* Adjust space between the links */
+        }
     </style>
 </head>
 <body>
-    <h1>Video Clips</h1>
-    <h2>Click on a thumbnail to play the video</h2>
+    <h1>fillySoundPosts</h1>
+
+
+    <!-- About link -->
+    <a href="javascript:void(0)" class="about-link" onclick="toggleAboutBox(event)">About</a>
+
+    <!-- About text box (hidden by default) -->
+    <div id="about-box" class="about-box">
+        <p>Scrapes the /flip/ thread for new soundposts daily. You can download the original files here with the correct soundpost filename. Firefox users: Your download will have the wrong filename because of how Firefox handles special characters in headers. Comments or suggestions? post them in the thread along with a cute Filian picture ^_^</p>
+        <button onclick="closeAboutBox()">Close</button>
+    </div>
+
+    <h6>{{makedate}}</h6>
+
+    <a href="javascript:void(0)" class="popup-link" onclick="showVideo(event, 'MODS.webm')">Click here to touch Filian's butt</a>
+    <!-- Video element that will appear dynamically -->
+    <video id="popup-video" class="popup-video" controls></video>
 
     <div class="gallery">
         {% for item in videos %}
         <div class="video-container" onclick="swapToVideo(this, '{{ item.video }}', '{{ item.download_link }}')">
             <div class="download-box">
-                <a href="{{ item.download_link }}" download onclick="event.stopPropagation();">Download</a>
+                <a href="{{ item.download_link }}" download onclick="event.stopPropagation();">get soundpost</a>
             </div>
             <img src="{{ item.thumbnail }}" alt="Thumbnail">
         </div>
@@ -89,6 +185,53 @@
             container.innerHTML = "";
             container.appendChild(video);
             container.appendChild(downloadBox);
+        }
+
+        function showVideo(event, videoSrc) {
+            const videoElement = document.getElementById("popup-video");
+
+            // Set video source and ensure it plays only once
+            videoElement.src = videoSrc;
+            videoElement.loop = false;  // Ensure it plays once
+
+            // Get the position of the clicked link
+            const rect = event.target.getBoundingClientRect();
+            const videoWidth = videoElement.clientWidth || 160; // Default width
+            const pageX = rect.left + rect.width / 2 - videoWidth / 2; // Center horizontally
+
+            // Position the video in the middle of the link
+            videoElement.style.left = `${pageX}px`;
+            videoElement.style.top = `${rect.bottom + window.scrollY}px`;
+
+            // Show and play video
+            videoElement.style.display = "block";
+            videoElement.play();
+
+            // Hide video when playback ends
+            videoElement.onended = () => {
+                videoElement.style.display = "none";
+                videoElement.src = "";  // Reset source
+            };
+        }
+
+        function toggleAboutBox(event) {
+        const aboutBox = document.getElementById("about-box");
+
+        // Get position of the "About" link
+        const rect = event.target.getBoundingClientRect();
+        const boxWidth = aboutBox.offsetWidth;
+
+        // Position the about box near the link (centered)
+        aboutBox.style.left = `${rect.left + rect.width / 2 - boxWidth / 2}px`;
+        aboutBox.style.top = `${rect.bottom + window.scrollY + 10}px`;
+
+        // Toggle visibility
+        aboutBox.style.display = aboutBox.style.display === "block" ? "none" : "block";
+        }
+
+        function closeAboutBox() {
+            const aboutBox = document.getElementById("about-box");
+            aboutBox.style.display = "none";  // Hide the box when closed
         }
     </script>
 </body>
