@@ -1,26 +1,33 @@
 #!/usr/bin/python3
 
-CONTENT_ROOT = '''https://i.4cdn.org/vt/{filename}{extension}'''  # this is where images are served for vt
-
 import os
-cwd = os.getcwd()
+import re
+from urllib.parse import unquote
+import json
+from urllib.parse import urlparse
+import subprocess
+import sqlite3
+import shutil
+import logging
 
-# probably doesn't even need to be absolute paths if we cd into here to run the script lol
-
+CONTENT_ROOT = '''https://i.4cdn.org/vt/{filename}{extension}'''  # this is where images are served for vt
+cwd = os.getcwd()  # probably doesn't even need to be absolute paths if we cd into here to run the script lol
 video_dest = os.path.join(cwd, "video")
 audio_dest = os.path.join(cwd, "audio")
 muxed_dest = os.path.join(cwd, "muxed")
 thumbs_dest = os.path.join(cwd, "thumbs")
 processed_folder = os.path.join(cwd, "processed")
 
-import re
-from urllib.parse import unquote
-import json
-from fillyLog import my_log
-from urllib.parse import urlparse
-import subprocess
-import sqlite3
-import shutil
+logging.basicConfig(
+    format="%(asctime)s\t%(module)s\t%(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+)
+
+
+def my_log(s):
+    logging.info(s)
+
 
 conn = sqlite3.connect("downloaded.sqlite3")
 cursor = conn.cursor()

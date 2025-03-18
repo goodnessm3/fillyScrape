@@ -1,8 +1,13 @@
 import datetime
 import os
+import logging
+
+logging.basicConfig(
+    format="%(asctime)s\t%(module)s\t%(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+)
+
 
 def my_log(s):
-
-    now = datetime.datetime.now()
-    t = now.strftime("%Y-%m-%d %H:%M:%S")
-    print(t + "\t" + os.path.basename(__file__) + "\t" + s)
+    logging.info(s)

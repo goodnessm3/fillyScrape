@@ -13,6 +13,19 @@ output_folder = "output"
 from urllib.parse import quote
 import datetime
 
+import logging
+
+logging.basicConfig(
+    format="%(asctime)s\t%(module)s\t%(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+)
+
+
+def my_log(s):
+    logging.info(s)
+
+
 conn = sqlite3.connect("downloaded.sqlite3")
 cursor = conn.cursor()
 
@@ -69,4 +82,4 @@ os.makedirs(output_folder, exist_ok=True)
 with open(os.path.join(output_folder, "fillysoundposts.html"), "w", encoding="utf-8") as f:
     f.write(output_html)
 
-print("Static site generated in 'output/fillysoundposts.html'")
+my_log("Static site generated in 'output/fillysoundposts.html'")
