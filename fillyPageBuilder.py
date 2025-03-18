@@ -3,6 +3,10 @@
 from jinja2 import Environment, FileSystemLoader
 import os
 import sqlite3
+from urllib.parse import quote
+import datetime
+import logging
+from fillyStats import get_stats
 
 # Define paths
 thumbnail_folder = "thumbs"
@@ -10,10 +14,6 @@ muxed_folder = "muxed"
 video_folder = "video"
 output_folder = "output"
 
-from urllib.parse import quote
-import datetime
-
-import logging
 
 logging.basicConfig(
     format="%(asctime)s\t%(module)s\t%(message)s",
@@ -60,14 +60,16 @@ def make_download_link(file_name):
 # Collect video and thumbnail filenames
 videos = []
 for filename in sorted(os.listdir(thumbnail_folder)):
-    if filename.endswith(".jpg"):
+    if filename.endswith(".webp"):
         fnum = os.path.splitext(filename)[0]
         video_name = fnum + ".webm"  # TODO: might be something else
         video_path = muxed_folder + "/" + video_name
         thumbnail_path = thumbnail_folder + "/" + filename
 
         if os.path.exists(video_path):
-            videos.append({"thumbnail": thumbnail_path, "video": video_path, "download_link": make_download_link(filename) + ".webm"})
+            videos.append({"thumbnail": thumbnail_path,
+                           "video": video_path,
+                           "download_link": make_download_link(filename) + ".webm"})
 
 # Set up Jinja2 environment
 env = Environment(loader=FileSystemLoader("templates"))
@@ -75,7 +77,7 @@ template = env.get_template("fillysoundposts.html")
 
 # Render the template
 updated_time = "Last updated: " + datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " UTC"
-output_html = template.render(videos=videos, makedate=updated_time)
+output_html = template.render(videos=videos, makedate=updated_time, stats_string=get_stats())
 
 # Save to output folder
 os.makedirs(output_folder, exist_ok=True)

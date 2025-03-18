@@ -140,12 +140,20 @@
 
 
     <!-- About link -->
-    <a href="javascript:void(0)" class="about-link" onclick="toggleAboutBox(event)">About</a>
+    <a href="javascript:void(0)" class="about-link" onclick="toggleBox(event, 'about-box')">About</a>
 
     <!-- About text box (hidden by default) -->
     <div id="about-box" class="about-box">
         <p>Scrapes the /flip/ thread for new soundposts daily. You can download the original files here with the correct soundpost filename. Firefox users: Your download will have the wrong filename because of how Firefox handles special characters in headers. Comments or suggestions? post them in the thread along with a cute Filian picture ^_^</p>
-        <button onclick="closeAboutBox()">Close</button>
+        <button onclick="closeBox('about-box')">Close</button>
+    </div>
+
+    <a href="javascript:void(0)" class="about-link" onclick="toggleBox(event, 'stats-box')">Stats</a>
+
+    <!-- About text box (hidden by default) -->
+    <div id="stats-box" class="about-box">
+        <p>{{stats_string}}</p>
+        <button onclick="closeBox('stats-box')">Close</button>
     </div>
 
     <h6>{{makedate}}</h6>
@@ -214,24 +222,26 @@
             };
         }
 
-        function toggleAboutBox(event) {
-        const aboutBox = document.getElementById("about-box");
+        function toggleBox(event, boxId) {
+        const box = document.getElementById(boxId);
+
+        if (!box) return; // Exit if the element is not found
 
         // Get position of the "About" link
         const rect = event.target.getBoundingClientRect();
-        const boxWidth = aboutBox.offsetWidth;
+        const boxWidth = box.offsetWidth;
 
         // Position the about box near the link (centered)
-        aboutBox.style.left = `${rect.left + rect.width / 2 - boxWidth / 2}px`;
-        aboutBox.style.top = `${rect.bottom + window.scrollY + 10}px`;
+        box.style.left = `${rect.left + rect.width / 2 - boxWidth / 2}px`;
+        box.style.top = `${rect.bottom + window.scrollY + 10}px`;
 
         // Toggle visibility
-        aboutBox.style.display = aboutBox.style.display === "block" ? "none" : "block";
+        box.style.display = box.style.display === "block" ? "none" : "block";
         }
 
-        function closeAboutBox() {
-            const aboutBox = document.getElementById("about-box");
-            aboutBox.style.display = "none";  // Hide the box when closed
+        function closeBox(boxId) {
+            const box = document.getElementById(boxId);
+            box.style.display = "none";  // Hide the box when closed
         }
     </script>
 </body>

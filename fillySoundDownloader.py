@@ -139,7 +139,7 @@ def dl_soundpost(tup):
     vdest = os.path.join(video_dest, fnumbers + ext)
     adest = os.path.join(audio_dest, snd_name)
     mdest = os.path.join(muxed_dest, fnumbers + ext)
-    thdest = os.path.join(thumbs_dest, fnumbers + ".jpg")
+    thdest = os.path.join(thumbs_dest, fnumbers + ".webp")  # now that it's my bandwidth I understand why we use webp
 
     result_codes = ""
 
@@ -166,7 +166,8 @@ def dl_soundpost(tup):
             my_log("ffmpeg was killed after taking too long to mux the files together.")
             result_codes += str(-1)
 
-        thumb_cmd = f'''ffmpeg -v error -i {updated_dest} -vf select=eq(n\,0) -frames:v 1 -q:v 2 {thdest}'''
+        thumb_cmd = f'''ffmpeg -v error -i {updated_dest} -vf select=eq(n\,0),scale=iw/2:ih/2 -frames:v 1 -compression_level 6 -q:v 50 {thdest}'''
+        #thumb_cmd = f'''ffmpeg -v error -i {updated_dest} -vf select=eq(n\,0) -frames:v 1 -q:v 2 {thdest}'''  # OLD jpg
         res = subprocess.run(thumb_cmd.split(" "), stdout=log, stderr=log)
         result_codes += str(res.returncode)
 
