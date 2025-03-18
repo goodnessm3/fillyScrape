@@ -47,6 +47,24 @@ def least_recent_op_number():
     return lowest
 
 
+def just_one_json():
+    """for determining if there is only one .json here. If we are down to the last one,
+    then we have caught up with the scraping process and we don't want to prematurely
+    move it to the archived directory."""
+
+    cnt = 0
+    for q in os.listdir():
+        if os.path.splitext(q)[1] == ".json":
+            cnt += 1
+        if cnt > 1:
+            return False
+    if cnt == 1:
+        return True
+    else:
+        my_log("No JSON archives found in directory, something is wrong!")
+        return False
+
+
 def is_soundpost(post):
 
     fname = post.get("filename", None)
@@ -181,6 +199,10 @@ def save_just_one(fi):
                 b = dl_soundpost(a)
                 if b:
                     return
+
+    if just_one_json():  # prevent premature archival
+        my_log("There is only a single .json file currently so we are not archiving it yet.")
+        return
 
     _, filename = os.path.split(fi)
     dest = os.path.join(processed_folder, filename)
