@@ -20,6 +20,7 @@ def my_log(s):
 
 base_url = r'https://a.4cdn.org/vt/thread/{}.json'
 
+
 def most_recent_op_number():
 
     """Look through all the .json files in the cwd and return the highest post number, which will correspond
@@ -48,8 +49,8 @@ def get_thread_json(postno):
 
 def find_next_thread(js):
 
-    '''Step through the posts in a thread JSON, starting at the end and working backwards, and find the first one that leads to a new thread.
-    We assume this is the next thread in the chain'''
+    """Step through the posts in a thread JSON, starting at the end and working backwards, and find the first one that leads to a new thread.
+    We assume this is the next thread in the chain"""
     
     if not js.get("posts", None):
         my_log("JSON didn't contain any posts, maybe the thread ID is invalid? Bailing out.")

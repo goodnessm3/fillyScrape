@@ -38,38 +38,35 @@ def doublequote(astr):
     return second
 
 
-def get_original_file_name(file_name):
+def get_soundpost_data(fnum):
 
     """Given the number under which the image was saved, retrieve the corresponding original name from the db"""
 
-    fnumber, ext = os.path.splitext(file_name)
-    cursor.execute('''SELECT orifilename, soundurl FROM files WHERE fnumber = ?''', (fnumber,))
+    cursor.execute('''SELECT orifilename, soundurl, oriext, date FROM files WHERE fnumber = ?''', (fnum,))
     res = cursor.fetchone()
     if res:
-        name, sndurl = res
-        return f'''{name}[sound={doublequote(sndurl)}]'''  # WE GOTTA NAME THE FILE RIGHT SPLITEXT
-
-
-def make_download_link(file_name):
-
-    fnumber, ext = os.path.splitext(file_name)
-    oriname = get_original_file_name(file_name)
-    return "/named/" + video_folder + "/" + fnumber + ".webm" + f"?filename={oriname}"
+        name, sndurl, oriext, date = res
+        return f'''{name}[sound={doublequote(sndurl)}]''', oriext, date
 
 
 # Collect video and thumbnail filenames
 videos = []
-for filename in sorted(os.listdir(thumbnail_folder)):
+thumblist = sorted(os.listdir(thumbnail_folder))
+thumblist.reverse()  # newest at top
+
+for filename in thumblist:
     if filename.endswith(".webp"):
         fnum = os.path.splitext(filename)[0]
-        video_name = fnum + ".webm"  # TODO: might be something else
+        oriname, oriext, date = get_soundpost_data(fnum)
+        video_name = fnum + oriext  # TODO: might be something else
         video_path = muxed_folder + "/" + video_name
         thumbnail_path = thumbnail_folder + "/" + filename
+        dl_link = "/named/" + video_folder + "/" + fnum + oriext + f"?filename={oriname} " + oriext
 
         if os.path.exists(video_path):
             videos.append({"thumbnail": thumbnail_path,
                            "video": video_path,
-                           "download_link": make_download_link(filename) + ".webm"})
+                           "download_link": dl_link})
 
 # Set up Jinja2 environment
 env = Environment(loader=FileSystemLoader("templates"))

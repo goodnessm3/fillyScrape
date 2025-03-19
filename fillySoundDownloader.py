@@ -87,10 +87,11 @@ def extract_soundpost(post):
     """Given a post from a thread JSON, return the file URL and sound URL if it was a soundpost, else return None."""
 
     fname = post.get("filename", None)  # store the original name to provide when people re-download
-    fnumber = post.get("tim", None)  # we'll use this when saving to the server rather than deal with users' own filenames
+    fnumber = post.get("tim", None)  # we'll use this when saving to the server rather than deal with user own filenames
     ex = post.get("ext", None)
     hash = post.get("md5", None)  # we need the hash to determine whether we've already downloaded this soundpost
     # if the file hash and catbox URL match something we already saw, we'll skip it.
+    now = post.get("time", None)  # seconds since epoch
 
     if not all((fname, fnumber, ex)):
         return
@@ -104,7 +105,7 @@ def extract_soundpost(post):
     if not sound_link[:8] == "https://":
         sound_link = "https://" + sound_link  # absolutely need this to avoid the redirect from catbox
 
-    return sound_link, CONTENT_ROOT.format(filename=fnumber, extension=ex), stripped_fname, fnumber, ex, hash
+    return sound_link, CONTENT_ROOT.format(filename=fnumber, extension=ex), stripped_fname, fnumber, ex, hash, now
 
 
 def make_ffmpeg_command(vdest, adest, mdest):
@@ -125,9 +126,10 @@ def make_ffmpeg_command(vdest, adest, mdest):
 
 
 def dl_soundpost(tup):
+
     """Expects a tuple from the extract_soundpost function"""
 
-    snd, video, fname, fnumber, ext, hash = tup
+    snd, video, fname, fnumber, ext, hash, now = tup
     fnumbers = str(fnumber)
 
     parsed_url = urlparse(snd)  # we are getting the file name to save to
@@ -140,14 +142,13 @@ def dl_soundpost(tup):
     adest = os.path.join(audio_dest, snd_name)
     mdest = os.path.join(muxed_dest, fnumbers + ext)
     thdest = os.path.join(thumbs_dest, fnumbers + ".webp")  # now that it's my bandwidth I understand why we use webp
+    # thumbnail will always be webp because we decide what to save
 
     result_codes = ""
 
     my_log(f"starting to download soundpost: {hash},{snd_name},{fnumber}")
 
     with open("curl.log", "a") as log:
-        # cm1 = f'''curl {snd} > {adest}'''
-        # cm2 = f'''curl {video} > {vdest}'''
 
         with open(adest, "w") as af:
             res = subprocess.run(f'''curl -sS {snd}'''.split(" "), stdout=af, stderr=log, timeout=30)
@@ -166,12 +167,15 @@ def dl_soundpost(tup):
             my_log("ffmpeg was killed after taking too long to mux the files together.")
             result_codes += str(-1)
 
-        thumb_cmd = f'''ffmpeg -v error -i {updated_dest} -vf select=eq(n\,0),scale=iw/2:ih/2 -frames:v 1 -compression_level 6 -q:v 50 {thdest}'''
-        #thumb_cmd = f'''ffmpeg -v error -i {updated_dest} -vf select=eq(n\,0) -frames:v 1 -q:v 2 {thdest}'''  # OLD jpg
-        res = subprocess.run(thumb_cmd.split(" "), stdout=log, stderr=log)
+        if ext == ".webm" or ext == ".mp4":
+            thumb_cmd = f'''ffmpeg -v error -i {updated_dest} -vf select=eq(n\,0),scale=iw/2:ih/2 -frames:v 1 -compression_level 6 -q:v 50 {thdest}'''
+            res = subprocess.run(thumb_cmd.split(" "), stdout=log, stderr=log)
+        else:
+            shutil.copy(vdest, thdest)  # just copy the still image
+
         result_codes += str(res.returncode)
 
-    save_file(hash, snd_name, snd, fnumber, fname, result_codes)
+    save_file(hash, snd_name, snd, fnumber, fname, result_codes, ext, now)
     my_log(f"archived a soundpost: {hash},{snd_name},{fnumber}")
 
     return True
@@ -185,12 +189,15 @@ def file_seen(file_hash, soundurl):
     return cursor.fetchone() is not None
     
 
-def save_file(file_hash, snd, soundurl, fnumber, orifilename, success):
+def save_file(file_hash, snd, soundurl, fnumber, orifilename, success, ext, now):
 
     """Make a new entry after processing a soundpost, regardless of whether it was successful (we can check failed ones
     later)"""
     
-    cursor.execute("INSERT INTO files (hash, soundurl, fnumber, orifilename, success) VALUES (?, ?, ?, ?, ?)", (file_hash + "|" +  snd, soundurl, fnumber, orifilename, success))
+    cursor.execute("INSERT INTO files "
+                   "(hash, soundurl, fnumber, orifilename, success, oriext, date) "
+                   "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                   (file_hash + "|" + snd, soundurl, fnumber, orifilename, success, ext, now))
     conn.commit()
     
     
