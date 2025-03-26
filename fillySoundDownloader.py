@@ -135,6 +135,10 @@ def dl_soundpost(tup):
     parsed_url = urlparse(snd)  # we are getting the file name to save to
     snd_name = os.path.basename(parsed_url.path)
 
+    if not snd_name:
+        my_log(f"Problem with the sound file name for: {hash},{snd_name},{fnumber}")
+        return False  # something wrong with extracting the sound URL, this happened with a Firefox-mangled name once
+        
     if file_seen(hash, snd_name):
         return False
 
@@ -150,30 +154,40 @@ def dl_soundpost(tup):
 
     with open("curl.log", "a") as log:
 
-        with open(adest, "w") as af:
-            res = subprocess.run(f'''curl -sS {snd}'''.split(" "), stdout=af, stderr=log, timeout=30)
-            # curl -sS: silent and show errors
-            result_codes += str(res.returncode)
-        with open(vdest, "w") as vf:
-            res = subprocess.run(f'''curl -sS {video}'''.split(" "), stdout=vf, stderr=log, timeout=30)
-            result_codes += str(res.returncode)
+        try:
+            with open(adest, "w") as af:
+                res = subprocess.run(f'''curl -sS {snd}'''.split(" "), stdout=af, stderr=log, timeout=30)
+                # curl -sS: silent and show errors
+                result_codes += str(res.returncode)
+            with open(vdest, "w") as vf:
+                res = subprocess.run(f'''curl -sS {video}'''.split(" "), stdout=vf, stderr=log, timeout=30)
+                result_codes += str(res.returncode)
+        except OSError:
+            my_log("Error opening audio file for writing, maybe the file was named wrong. Aborting.")
+            return False
+
+    my_log("Downloads completed, muxing together and generating thumbnail.")
 
     with open("ffmpeg.log", "a") as log:
         vcmd, updated_dest = make_ffmpeg_command(vdest, adest, mdest)
         try:
-            res = subprocess.run(vcmd.split(" "), stdout=log, stderr=log, timeout=30)
+            res = subprocess.run(vcmd.split(" "), stdout=log, stderr=log, timeout=240)
+            # timeout needs to be LONG because for a still image + audio, the Pi needs to do the vp9 transcoding
+            # without hardware acceleration. But we don't want to offer a mixture of .mp4 and .webm to users.
             result_codes += str(res.returncode)
+            my_log(f"video muxed for {fnumber}")
         except subprocess.TimeoutExpired:
             my_log("ffmpeg was killed after taking too long to mux the files together.")
             result_codes += str(-1)
 
-        if ext == ".webm" or ext == ".mp4":
-            thumb_cmd = f'''ffmpeg -v error -i {updated_dest} -vf select=eq(n\,0),scale=iw/2:ih/2 -frames:v 1 -compression_level 6 -q:v 50 {thdest}'''
-            res = subprocess.run(thumb_cmd.split(" "), stdout=log, stderr=log)
-        else:
-            shutil.copy(vdest, thdest)  # just copy the still image
-
-        result_codes += str(res.returncode)
+        thumb_cmd = f'''ffmpeg -v error -i {updated_dest} -vf select=eq(n\\,0),scale=iw/2:ih/2 -frames:v 1 -compression_level 6 -q:v 50 {thdest}'''
+        try:
+            res = subprocess.run(thumb_cmd.split(" "), stdout=log, stderr=log, timeout=240)
+            result_codes += str(res.returncode)
+            my_log(f"thumbnail generated for {fnumber}")
+        except subprocess.TimeoutExpired:
+            my_log("ffmpeg was killed after taking too long to generate a thumbnail.")
+            result_codes += str(-1)
 
     save_file(hash, snd_name, snd, fnumber, fname, result_codes, ext, now)
     my_log(f"archived a soundpost: {hash},{snd_name},{fnumber}")
@@ -223,7 +237,7 @@ def save_just_one(fi):
     dest = os.path.join(processed_folder, filename)
     shutil.move(fi, dest)  # no sense revisiting the file if we've gone through it
     my_log(f"Looks like we got all soundposts from {fi}, archiving it.")
-    
+
     
 def update():
 
