@@ -49,6 +49,13 @@ def get_soundpost_data(fnum):
         return f'''{name}[sound={doublequote(sndurl)}]''', oriext, date
 
 
+def get_original_name_only(fnum):
+
+    cursor.execute('''SELECT orifilename FROM files WHERE fnumber = ?''', (fnum,))
+    res = cursor.fetchone()
+    return res[0].lower()
+
+
 # Collect video and thumbnail filenames
 videos = []
 thumblist = sorted(os.listdir(thumbnail_folder))
@@ -66,7 +73,8 @@ for filename in thumblist:
         if os.path.exists(video_path):
             videos.append({"thumbnail": thumbnail_path,
                            "video": video_path,
-                           "download_link": dl_link})
+                           "download_link": dl_link,
+                           "oriname": get_original_name_only(fnum)})
 
 # Set up Jinja2 environment
 env = Environment(loader=FileSystemLoader("templates"))

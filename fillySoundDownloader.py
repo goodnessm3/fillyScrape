@@ -135,10 +135,12 @@ def dl_soundpost(tup):
     parsed_url = urlparse(snd)  # we are getting the file name to save to
     snd_name = os.path.basename(parsed_url.path)
 
+    # TODO: user might upload an escaped URL which still works as a soundpost, like https%3A%2F%2F....
+
     if not snd_name:
         my_log(f"Problem with the sound file name for: {hash},{snd_name},{fnumber}")
         return False  # something wrong with extracting the sound URL, this happened with a Firefox-mangled name once
-        
+
     if file_seen(hash, snd_name):
         return False
 
@@ -190,6 +192,8 @@ def dl_soundpost(tup):
             result_codes += str(-1)
 
     save_file(hash, snd_name, snd, fnumber, fname, result_codes, ext, now)
+    # TODO: write to the db regardless of success, otherwise we'll constantly retry broken files
+    # not terrible because eventually the .json will be archived and we'll stop checking it
     my_log(f"archived a soundpost: {hash},{snd_name},{fnumber}")
 
     return True

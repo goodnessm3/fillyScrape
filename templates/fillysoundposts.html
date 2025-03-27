@@ -51,9 +51,27 @@
             padding: 5px;
             transition: top 0.3s ease-in-out;
         }
+
+        .name-box {
+            position: absolute;
+            bottom: -40px;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            text-align: center;
+            padding: 5px;
+            transition: bottom 0.3s ease-in-out;
+        }
+
         .video-container:hover .download-box {
             top: 0;
         }
+
+        .video-container:hover .name-box {
+            bottom: 0;
+        }
+
         .download-box a {
             color: white;
             text-decoration: none;
@@ -158,15 +176,21 @@
 
     <h6>{{makedate}}</h6>
 
+    <input type="text" id="search-box" placeholder="Search by original filename..." oninput="filterThumbnails()">
+
     <a href="javascript:void(0)" class="popup-link" onclick="showVideo(event, 'MODS.webm')">Click here to touch Filian's butt</a>
     <!-- Video element that will appear dynamically -->
     <video id="popup-video" class="popup-video" controls></video>
 
+
     <div class="gallery">
         {% for item in videos %}
-        <div class="video-container" onclick="swapToVideo(this, '{{ item.video }}', '{{ item.download_link }}')">
+        <div class="video-container" data-filename="{{ item.oriname }}" onclick="swapToVideo(this, '{{ item.video }}', '{{ item.download_link }}')">
             <div class="download-box">
                 <a href="{{ item.download_link }}" download onclick="event.stopPropagation();">get soundpost</a>
+            </div>
+            <div class="name-box">
+                {{ item.oriname }}
             </div>
             <img src="{{ item.thumbnail }}" alt="Thumbnail">
         </div>
@@ -242,6 +266,20 @@
         function closeBox(boxId) {
             const box = document.getElementById(boxId);
             box.style.display = "none";  // Hide the box when closed
+        }
+
+        function filterThumbnails() {
+            const searchTerm = document.getElementById("search-box").value.toLowerCase();
+            const videoContainers = document.querySelectorAll(".video-container");
+
+            videoContainers.forEach(container => {
+                const filename = container.getAttribute("data-filename").toLowerCase();
+                if (filename.includes(searchTerm)) {
+                    container.style.display = "block";  // Show matching thumbnails
+                } else {
+                    container.style.display = "none";   // Hide non-matching thumbnails
+                }
+            });
         }
     </script>
 </body>
