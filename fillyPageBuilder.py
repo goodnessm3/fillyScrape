@@ -14,6 +14,8 @@ muxed_folder = "muxed"
 video_folder = "video"
 output_folder = "output"
 
+IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif"]
+
 
 logging.basicConfig(
     format="%(asctime)s\t%(module)s\t%(message)s",
@@ -65,7 +67,9 @@ for filename in thumblist:
     if filename.endswith(".webp"):
         fnum = os.path.splitext(filename)[0]
         oriname, oriext, date = get_soundpost_data(fnum)
-        video_name = fnum + oriext  # TODO: might be something else
+        if oriext.lower() in IMAGE_EXTENSIONS:
+            oriext = ".webm"  # image extension is irrelevant, we made it into a webm
+        video_name = fnum + oriext
         video_path = muxed_folder + "/" + video_name
         thumbnail_path = thumbnail_folder + "/" + filename
         dl_link = "/named/" + video_folder + "/" + fnum + oriext + f"?filename={oriname} " + oriext
@@ -74,7 +78,11 @@ for filename in thumblist:
             videos.append({"thumbnail": thumbnail_path,
                            "video": video_path,
                            "download_link": dl_link,
-                           "oriname": get_original_name_only(fnum)})
+                           "oriname": get_original_name_only(fnum),
+                           "fnum": fnum})
+
+    #if "1745768408068768" in filename:
+        #breakpoint()
 
 # Set up Jinja2 environment
 env = Environment(loader=FileSystemLoader("templates"))
