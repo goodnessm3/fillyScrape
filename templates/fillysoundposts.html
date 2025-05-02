@@ -307,6 +307,42 @@
             </div>
             {% endfor %}
         </div>
+
+
+        <div class="column">
+            {% for item in videos[1::3] %}
+            <div class="video-container" data-filename="{{ item.oriname }}" onclick="swapToVideo(this, '{{ item.video }}', '{{ item.download_link }}')">
+                <div class="download-box">
+                    <a href="{{ item.download_link }}" download onclick="event.stopPropagation();">get soundpost</a>
+                </div>
+                <div class="name-box">
+                    {{ item.oriname }}
+                </div>
+                <div class="tags-box">
+                    <button onclick="event.stopPropagation(); openTagForm(this, '{{ item.fnum }}');">tags</button>
+                </div>
+                <img src="{{ item.thumbnail }}" alt="Thumbnail" loading="lazy">
+            </div>
+            {% endfor %}
+        </div>
+
+
+        <div class="column">
+            {% for item in videos[2::3] %}
+            <div class="video-container" data-filename="{{ item.oriname }}" onclick="swapToVideo(this, '{{ item.video }}', '{{ item.download_link }}')">
+                <div class="download-box">
+                    <a href="{{ item.download_link }}" download onclick="event.stopPropagation();">get soundpost</a>
+                </div>
+                <div class="name-box">
+                    {{ item.oriname }}
+                </div>
+                <div class="tags-box">
+                    <button onclick="event.stopPropagation(); openTagForm(this, '{{ item.fnum }}');">tags</button>
+                </div>
+                <img src="{{ item.thumbnail }}" alt="Thumbnail" loading="lazy">
+            </div>
+            {% endfor %}
+        </div>
         <!--
         <div class="column">
             {% for item in videos[1::3] %}
@@ -341,6 +377,7 @@
             {% endfor %}
         </div>
         -->
+
     </div>
 
     <script>
