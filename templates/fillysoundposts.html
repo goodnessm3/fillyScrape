@@ -158,11 +158,100 @@
             display: block;
             margin-bottom: 10px; /* Adjust space between the links */
         }
+
+        .tag-form {
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            z-index: 20;
+            width: 200px;
+            margin-top: 5px;
+        }
+
+        .tags-box {
+            position: absolute;
+            top: 50%; /* center vertically */
+            right: -60px; /* start hidden just outside the right */
+            transform: translateY(-50%); /* perfectly center vertically */
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            transition: right 0.3s ease-in-out;
+        }
+
+        .video-container:hover .tags-box {
+            right: 0;
+        }
+
+        .tags-box button {
+            background: none;
+            border: none;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .tag-button {
+            background-color: #eee;
+            border: 1px solid #ccc;
+            padding: 5px 8px;
+            margin: 2px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .tag-button:hover {
+            background-color: #ddd;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: none;
+            border: none;
+            color: black;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        @keyframes flash-red {
+          0% { background-color: #ffcccc; }
+          100% { background-color: white; }
+        }
+
+        .flash-error {
+          animation: flash-red 0.6s ease;
+          border: 1px solid red !important;
+        }
+
+        #tag-error-banner {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          background-color: #ff4d4d;
+          color: white;
+          text-align: center;
+          padding: 12px 0;
+          font-weight: bold;
+          z-index: 9999;
+          transform: translateY(-100%);
+          transition: transform 0.3s ease-in-out;
+          pointer-events: none;
+        }
+
+        #tag-error-banner.show {
+          transform: translateY(0%);
+        }
+
+
     </style>
 </head>
 <body>
+<div id="tag-error-banner">test error</div>
     <h1>fillySoundPosts</h1>
-
 
     <!-- About link -->
     <a href="javascript:void(0)" class="about-link" onclick="toggleBox(event, 'about-box')">About</a>
@@ -178,12 +267,23 @@
     <!-- About text box (hidden by default) -->
     <div id="stats-box" class="about-box">
         <p>{{stats_string}}</p>
+        <p>tag database: <span id="api-status-text">checking...</span></p>
         <button onclick="closeBox('stats-box')">Close</button>
     </div>
 
+
     <h6>{{makedate}}</h6>
 
+    <div style="display: flex; justify-content: center; margin-top: 10px;">
+  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
     <input type="text" id="search-box" placeholder="Search by original filename..." oninput="filterThumbnails()">
+    <button id="filter-tags-button">Filter by Tags</button>
+  </div>
+</div>
+
+<div style="display: flex; justify-content: center; margin-top: 5px;">
+  <div id="tag-filter-menu" style="display: none; background: black; border: 1px solid black; padding: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);"></div>
+</div>
 
     <a href="javascript:void(0)" class="popup-link" onclick="showVideo(event, 'MODS.webm')">Click here to touch Filian's butt</a>
     <!-- Video element that will appear dynamically -->
@@ -200,18 +300,25 @@
                 <div class="name-box">
                     {{ item.oriname }}
                 </div>
+                <div class="tags-box">
+                    <button onclick="event.stopPropagation(); openTagForm(this, '{{ item.fnum }}');">tags</button>
+                </div>
                 <img src="{{ item.thumbnail }}" alt="Thumbnail" loading="lazy">
             </div>
             {% endfor %}
         </div>
+        <!--
         <div class="column">
             {% for item in videos[1::3] %}
             <div class="video-container" data-filename="{{ item.oriname }}" onclick="swapToVideo(this, '{{ item.video }}', '{{ item.download_link }}')">
                 <div class="download-box">
-                    <a href="{{ item.download_link }}" download onclick="event.stopPropagation();">get soundpost</a>
+                    <a href="{{ item.download_link }}" download onclick="event.stopPropagation()">get soundpost</a>
                 </div>
                 <div class="name-box">
                     {{ item.oriname }}
+                </div>
+                <div class="tags-box">
+                    <button onclick="event.stopPropagation(); openTagForm(this, 'ader1');">tags</button>
                 </div>
                 <img src="{{ item.thumbnail }}" alt="Thumbnail" loading="lazy">
             </div>
@@ -221,18 +328,48 @@
             {% for item in videos[2::3] %}
             <div class="video-container" data-filename="{{ item.oriname }}" onclick="swapToVideo(this, '{{ item.video }}', '{{ item.download_link }}')">
                 <div class="download-box">
-                    <a href="{{ item.download_link }}" download onclick="event.stopPropagation();">get soundpost</a>
+                    <a href="{{ item.download_link }}" download onclick="event.stopPropagation(); openTagForm(this, 'ader1');">get soundpost</a>
                 </div>
                 <div class="name-box">
                     {{ item.oriname }}
+                </div>
+                <div class="tags-box">
+                    <button onclick="event.stopPropagation(); openTagForm(this, '{{ item.oriname }}');">tags</button>
                 </div>
                 <img src="{{ item.thumbnail }}" alt="Thumbnail" loading="lazy">
             </div>
             {% endfor %}
         </div>
+        -->
     </div>
 
     <script>
+
+        function checkApiStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusEl = document.getElementById('api-status-text');
+                    if (data.status === 'online') {
+                        statusEl.textContent = 'online';
+                        statusEl.style.color = 'green';
+                    } else {
+                        statusEl.textContent = 'offline';
+                        statusEl.style.color = 'red';
+                    }
+                })
+                .catch(() => {
+                    const statusEl = document.getElementById('api-status-text');
+                    statusEl.textContent = 'offline';
+                    statusEl.style.color = 'red';
+                });
+        }
+
+        // Call it once when the page loads
+        checkApiStatus();
+
+
+
         function swapToVideo(container, videoSrc, downloadLink) {
             let video = document.createElement("video");
             video.src = videoSrc;
@@ -316,6 +453,386 @@
                 }
             });
         }
-    </script>
+
+
+let knownTags = [];
+const userTagMap = new Map(); // fnum -> Set of tags user has added this session
+
+document.addEventListener('DOMContentLoaded', async function () {
+    try {
+        const res = await fetch('/api/taglist');
+        const data = await res.json();
+        knownTags = data.tags || [];
+    } catch (err) {
+        console.error('Failed to fetch known tags:', err);
+    }
+});
+
+
+document.addEventListener('DOMContentLoaded', async function () {
+    try {
+        const res = await fetch('/api/tagdict');
+        const data = await res.json();
+        tagNameToId = data || {};
+    } catch (err) {
+        console.error('Failed to fetch known tags:', err);
+    }
+});
+
+
+let currentVideoId = null;
+let currentTagsData = [];
+
+function openTagForm(triggerElement, videoId) {
+    closeTagForm(); // Only one open at a time
+    currentVideoId = videoId;
+
+    const tagMenu = document.createElement('div');
+    tagMenu.id = 'dynamic-tag-form';
+    tagMenu.className = 'tag-menu';
+    tagMenu.style.cssText = `
+        position: absolute;
+        background: white;
+        border: 1px solid black;
+        padding: 10px;
+        z-index: 1000;
+        max-width: 300px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    `;
+
+    const rect = triggerElement.getBoundingClientRect();
+    tagMenu.style.left = `${window.scrollX + rect.right + 10}px`;
+    tagMenu.style.top = `${window.scrollY + rect.top}px`;
+    tagMenu.innerHTML = '<div>Loading tags...</div>';
+    document.body.appendChild(tagMenu);
+
+    fetch(`/api/videos/${videoId}/tags`)
+        .then(res => res.json())
+        .then(data => {
+            const counts = data.tags || {};
+            currentTagsData = knownTags.map(tag => ({
+                name: tag,
+                count: counts[tag] || 0
+            }));
+            redrawTags();
+        })
+        .catch(err => {
+            console.error('Failed to fetch video tags:', err);
+            tagMenu.innerHTML = '<div>Error loading tags</div>';
+        });
+}
+
+function redrawTags() {
+    const tagMenu = document.getElementById('dynamic-tag-form');
+    if (!tagMenu) return;
+
+    tagMenu.innerHTML = `
+        <button class="close-button" onclick="closeTagForm()" style="
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;">&times;</button>
+    `;
+
+    const userTags = userTagMap.get(currentVideoId) || new Set();
+
+    currentTagsData.forEach(tag => {
+        const fontSize = 14 + tag.count * 2;
+
+        const button = document.createElement('button');
+        button.className = 'tag-button';
+        button.textContent = `${tag.name} (${tag.count})`;
+        button.style.cssText = `
+            font-size: ${fontSize}px;
+            font-weight: ${tag.count > 0 ? 'bold' : 'normal'};
+            padding: 5px 10px;
+            cursor: pointer;
+            background: #eee;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            opacity: ${userTags.has(tag.name) ? '0.6' : '1'};
+        `;
+
+        button.onclick = () => {
+            handleTagClick(tag.name, button, userTags.has(tag.name));
+        };
+
+        tagMenu.appendChild(button);
+    });
+
+    const addBox = document.createElement('div');
+    addBox.style.width = '100%';
+    addBox.style.marginTop = '10px';
+    addBox.innerHTML = `
+        <input type="text" id="custom-tag" placeholder="Add your own tag" style="margin-right: 5px;">
+        <button type="button" onclick="addCustomTag()">Add</button>
+    `;
+    tagMenu.appendChild(addBox);
+}
+
+function handleTagClick(tagName, button, isUndo) {
+    const userTags = userTagMap.get(currentVideoId) || new Set();
+    const tag = currentTagsData.find(t => t.name === tagName);
+    if (!tag) return;
+
+    // Optimistic UI update
+    tag.count += isUndo ? -1 : 1;
+
+    if (isUndo) {
+        userTags.delete(tagName);
+        fetch(`/api/videos/${currentVideoId}/tags/`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tag: tagName }),
+        });
+    } else {
+        // Check for duplicate client-side
+        if (userTags.has(tagName)) {
+            //flashInputError(button);
+            showTagErrorBanner('Looks like you already submitted this tag.');
+            return;
+        }
+
+        userTags.add(tagName);
+        //triggerPlusOneAnimation(button);
+
+        fetch(`/api/videos/${currentVideoId}/tags/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tag: tagName }),
+        }).then(response => {
+            if (response.status === 409) {
+                // Revert optimistic UI update
+                tag.count -= 1;
+                userTags.delete(tagName);
+
+                //flashInputError(button);
+                showTagErrorBanner('Looks like you already submitted this tag.');
+                redrawTags();
+                return;
+            }
+
+            if (!response.ok) {
+                console.error('Failed to add tag:', response.statusText);
+                return;
+            }
+
+            userTagMap.set(currentVideoId, userTags);
+            redrawTags();
+        }).catch(err => {
+            console.error('Error submitting tag:', err);
+        });
+    }
+
+    userTagMap.set(currentVideoId, userTags);
+    redrawTags();
+}
+
+
+function addCustomTag() {
+    const input = document.getElementById('custom-tag');
+    const newTagName = input.value.trim();
+    if (!newTagName) return;
+
+    const userTags = userTagMap.get(currentVideoId) || new Set();
+    if (userTags.has(newTagName)) return;
+
+    // Send tag to backend first
+    fetch(`/api/videos/${currentVideoId}/tags/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tag: newTagName }),
+    }).then(response => {
+        if (response.status === 429) {
+            // Flash red and show message
+            flashInputError(input);
+            showTemporaryMessage("You can't submit too many new tags per day.", input);
+            return;
+        }
+
+        if (!response.ok) {
+            console.error('Failed to add tag:', response.statusText);
+            return;
+        }
+
+        // If successful, update local state/UI
+        let tag = currentTagsData.find(t => t.name.toLowerCase() === newTagName.toLowerCase());
+        if (tag) {
+            tag.count += 1;
+        } else {
+            tag = { name: newTagName, count: 1 };
+            currentTagsData.push(tag);
+        }
+
+        userTags.add(newTagName);
+        userTagMap.set(currentVideoId, userTags);
+        input.value = '';
+        redrawTags();
+    }).catch(err => {
+        console.error('Error submitting tag:', err);
+    });
+}
+
+
+function closeTagForm() {
+    const form = document.getElementById('dynamic-tag-form');
+    if (form) form.remove();
+}
+
+
+
+        //////////////// filtering code
+
+
+//const tagNameToId = {};  // Populate this from backend
+let selectedTagIds = [];
+
+document.getElementById('filter-tags-button').addEventListener('click', function () {
+  const menu = document.getElementById('tag-filter-menu');
+  menu.style.display = (menu.style.display === 'none') ? 'block' : 'none';
+  populateTagFilterMenu();
+});
+
+function populateTagFilterMenu() {
+  const menu = document.getElementById('tag-filter-menu');
+  menu.innerHTML = '';
+
+  const tags = Object.entries(tagNameToId);
+  if (tags.length === 0) {
+    menu.innerHTML = 'No tags available.';
+    return;
+  }
+
+  const numColumns = tags.length > 10 ? Math.ceil(tags.length / 10) : 1;
+  const columnDivs = Array.from({ length: numColumns }, () => {
+    const col = document.createElement('div');
+    col.style.display = 'flex';
+    col.style.flexDirection = 'column';
+    col.style.marginRight = '20px';
+    return col;
+  });
+
+  tags.forEach(([tag, id], i) => {
+    const label = document.createElement('label');
+    label.style.display = 'flex';
+    label.style.alignItems = 'center';
+    label.style.marginBottom = '4px';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = id;
+    checkbox.checked = selectedTagIds.includes(id);
+    checkbox.addEventListener('change', function () {
+      if (this.checked) {
+        selectedTagIds.push(id);
+      } else {
+        selectedTagIds = selectedTagIds.filter(tagId => tagId !== id);
+      }
+      fetchVideosByTags();
+    });
+
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(' ' + tag));
+    columnDivs[i % numColumns].appendChild(label);
+  });
+
+  const columnsContainer = document.createElement('div');
+  columnsContainer.style.display = 'flex';
+  columnsContainer.style.flexWrap = 'wrap';
+  columnDivs.forEach(col => columnsContainer.appendChild(col));
+
+  // Add "Clear All Tags" button
+  const clearButton = document.createElement('button');
+  clearButton.textContent = 'Clear All Tags';
+  clearButton.style.marginTop = '10px';
+  clearButton.addEventListener('click', () => {
+    selectedTagIds = [];
+    populateTagFilterMenu();
+    fetchVideosByTags();
+  });
+
+  menu.appendChild(columnsContainer);
+  menu.appendChild(clearButton);
+}
+
+
+
+function fetchVideosByTags() {
+  if (selectedTagIds.length === 0) {
+    showAllVideos();
+    return;
+  }
+
+  fetch(`/api/videos/by_tags?tag_ids=${selectedTagIds.join(',')}`)
+    .then(res => res.json())
+    .then(data => {
+      const allowedIds = new Set(data.video_ids.map(String));
+      filterDisplayedVideos(allowedIds);
+    })
+    .catch(err => {
+      console.error('Failed to fetch filtered videos:', err);
+    });
+}
+
+function filterDisplayedVideos(allowedIds) {
+  document.querySelectorAll('.video-container').forEach(container => {
+    const fnum = container.querySelector('button').getAttribute('onclick').match(/'(\d+)'/)[1];
+    container.style.display = allowedIds.has(fnum) ? 'block' : 'none';
+  });
+}
+
+function showAllVideos() {
+  document.querySelectorAll('.video-container').forEach(container => {
+    container.style.display = 'block';
+  });
+}
+
+function flashInputError(inputEl) {
+    inputEl.classList.add('flash-error');
+    setTimeout(() => inputEl.classList.remove('flash-error'), 600);
+}
+
+function showTemporaryMessage(msg, inputEl) {
+    const note = document.createElement('div');
+    note.textContent = msg;
+    note.style.color = 'red';
+    note.style.fontSize = '0.9em';
+    note.style.marginTop = '4px';
+    inputEl.parentNode.appendChild(note);
+    setTimeout(() => note.remove(), 3000);
+}
+
+
+function showTagErrorBanner(message) {
+  const banner = document.getElementById('tag-error-banner');
+  if (!banner) return;
+
+  banner.textContent = message;
+
+  // Remove the class if already present
+  banner.classList.remove('show');
+
+  // Force reflow (this ensures the transition will run again)
+  void banner.offsetWidth;
+
+  // Add the class back in
+  banner.classList.add('show');
+
+  // Hide after delay
+  setTimeout(() => {
+    banner.classList.remove('show');
+  }, 3000);
+}
+
+
+
+
+
+</script>
 </body>
 </html>
