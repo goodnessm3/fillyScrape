@@ -60,6 +60,7 @@
         }
 
         .name-box {
+            pointer-events: none;
             position: absolute;
             bottom: -40px;
             left: 0;
@@ -343,40 +344,6 @@
             </div>
             {% endfor %}
         </div>
-        <!--
-        <div class="column">
-            {% for item in videos[1::3] %}
-            <div class="video-container" data-filename="{{ item.oriname }}" onclick="swapToVideo(this, '{{ item.video }}', '{{ item.download_link }}')">
-                <div class="download-box">
-                    <a href="{{ item.download_link }}" download onclick="event.stopPropagation()">get soundpost</a>
-                </div>
-                <div class="name-box">
-                    {{ item.oriname }}
-                </div>
-                <div class="tags-box">
-                    <button onclick="event.stopPropagation(); openTagForm(this, 'ader1');">tags</button>
-                </div>
-                <img src="{{ item.thumbnail }}" alt="Thumbnail" loading="lazy">
-            </div>
-            {% endfor %}
-        </div>
-        <div class="column">
-            {% for item in videos[2::3] %}
-            <div class="video-container" data-filename="{{ item.oriname }}" onclick="swapToVideo(this, '{{ item.video }}', '{{ item.download_link }}')">
-                <div class="download-box">
-                    <a href="{{ item.download_link }}" download onclick="event.stopPropagation(); openTagForm(this, 'ader1');">get soundpost</a>
-                </div>
-                <div class="name-box">
-                    {{ item.oriname }}
-                </div>
-                <div class="tags-box">
-                    <button onclick="event.stopPropagation(); openTagForm(this, '{{ item.oriname }}');">tags</button>
-                </div>
-                <img src="{{ item.thumbnail }}" alt="Thumbnail" loading="lazy">
-            </div>
-            {% endfor %}
-        </div>
-        -->
 
     </div>
 
@@ -407,26 +374,29 @@
 
 
 
-        function swapToVideo(container, videoSrc, downloadLink) {
-            let video = document.createElement("video");
-            video.src = videoSrc;
-            video.controls = true;
-            video.autoplay = true;
-            video.style.width = "100%";
+    function swapToVideo(container, videoSrc, downloadLink) {
+    // Find and remove the thumbnail image inside the container
+    const thumbnail = container.querySelector("img");
+    if (!thumbnail) return;
 
-            let downloadBox = document.createElement("div");
-            downloadBox.className = "download-box";
-            let downloadLinkElement = document.createElement("a");
-            downloadLinkElement.href = downloadLink;
-            downloadLinkElement.download = "";
-            downloadLinkElement.textContent = "Download";
-            downloadLinkElement.onclick = function(event) { event.stopPropagation(); }; // Prevents click from triggering video swap
-            downloadBox.appendChild(downloadLinkElement);
+    // Create the video element
+    const video = document.createElement("video");
+    video.src = videoSrc;
+    video.controls = true;
+    video.autoplay = true;
+    video.style.width = "100%";
 
-            container.innerHTML = "";
-            container.appendChild(video);
-            container.appendChild(downloadBox);
+    // Replace the thumbnail with the video
+    container.replaceChild(video, thumbnail);
+
+    // Optionally, update the download link if needed
+    const downloadBox = container.querySelector(".download-box a");
+    if (downloadBox) {
+        downloadBox.href = downloadLink;
+        downloadBox.download = "";
         }
+    }
+
 
         function showVideo(event, videoSrc) {
             const videoElement = document.getElementById("popup-video");
@@ -545,7 +515,7 @@ function openTagForm(triggerElement, videoId) {
     tagMenu.innerHTML = '<div>Loading tags...</div>';
     document.body.appendChild(tagMenu);
 
-    fetch(`/api/videos/${videoId}/tags`)
+    fetch(`/api/videos/${videoId}/tags/`)
         .then(res => res.json())
         .then(data => {
             const counts = data.tags || {};
@@ -710,6 +680,7 @@ function addCustomTag() {
         userTagMap.set(currentVideoId, userTags);
         input.value = '';
         redrawTags();
+        refreshKnownTags();
     }).catch(err => {
         console.error('Error submitting tag:', err);
     });
@@ -735,9 +706,19 @@ document.getElementById('filter-tags-button').addEventListener('click', function
   populateTagFilterMenu();
 });
 
-function populateTagFilterMenu() {
+async function populateTagFilterMenu() {
   const menu = document.getElementById('tag-filter-menu');
   menu.innerHTML = '';
+
+try {
+    const res = await fetch('/api/tagdict');
+    const data = await res.json();
+    tagNameToId = data || {};
+  } catch (err) {
+    console.error('Failed to fetch tag dictionary:', err);
+    menu.innerHTML = 'Failed to load tags.';
+    return;
+  }
 
   const tags = Object.entries(tagNameToId);
   if (tags.length === 0) {
@@ -864,6 +845,17 @@ function showTagErrorBanner(message) {
   setTimeout(() => {
     banner.classList.remove('show');
   }, 3000);
+}
+
+
+async function refreshKnownTags() {
+    try {
+        const res = await fetch('/api/taglist');
+        const data = await res.json();
+        knownTags = data.tags || [];
+    } catch (err) {
+        console.error('Failed to refresh known tags:', err);
+    }
 }
 
 
