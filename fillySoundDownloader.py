@@ -205,6 +205,15 @@ def file_seen(file_hash, soundurl):
     
     cursor.execute("SELECT 1 FROM files WHERE hash = ?", (file_hash + "|" + soundurl,))
     return cursor.fetchone() is not None
+
+
+def sound_heard(catbox):
+
+    """Did we ever encounter this catbox sound URL before? Used to disqualify
+    downloads from warosu archive"""
+
+    cursor.execute("SELECT 1 FROM files WHERE soundurl = ?", (catbox,))
+    return cursor.fetchone() is not None
     
 
 def save_file(file_hash, snd, soundurl, fnumber, orifilename, success, ext, now):
