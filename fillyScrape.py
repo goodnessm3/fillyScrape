@@ -66,7 +66,9 @@ def find_next_thread(js):
                     # a quotelink to another post ITT will just look like: #p95094652
                     # but a link to a new OP will look like: /vt/thread/95094830#p95094830
                     if hr.startswith(r"/vt/thread/"):
-                        return hr[-8:]  # tiny chance someone might link to irrelevant thread last thing, just ignore that for now
+                        _, newop = hr.split("#")
+                        # a cross link looks like: /vt/thread/100042963#p100042963
+                        return newop[1:]  # tiny chance someone might link to irrelevant thread last thing, just ignore that for now
                         # we are just returning the post number assuming the structure is consistent, it should be
     
     my_log("No link to a new thread found.")
@@ -95,7 +97,7 @@ def update():
             if int(new_op) > hi:
                 my_log(f"Found a daughter thread: {new_op}")
             else:
-                my_log("Found a daughter thread with an earlier post number, ignoring. Maybe thread is quiet.")
+                my_log(f"Found a daughter thread with an earlier post number {new_op}, ignoring. Maybe thread is quiet.")
                 return  # bail early rather than write spurious json, we'll check again later
             
         new_js = get_thread_json(new_op)  # download the first version of this new thread we found
