@@ -92,7 +92,7 @@ def update():
 
     process_thread(this)
 
-    with open("got-warosu.txt", "w") as f:
+    with open("got-warosu.txt", "a") as f:
         f.write(this)
         f.write("\n")
 
