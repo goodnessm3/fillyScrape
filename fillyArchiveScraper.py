@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import fillySoundDownloader as fs
 import re
 from urllib.parse import unquote
