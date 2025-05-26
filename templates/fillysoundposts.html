@@ -293,7 +293,7 @@
     <div class="gallery">
         <div class="column">
             {% for item in videos[::3] %}
-            <div class="video-container" data-filename="{{ item.oriname }}" onclick="swapToVideo(this, '{{ item.video }}', '{{ item.download_link }}')">
+            <div class="video-container" data-filename="{{ item.oriname }}" onclick="swapToVideo(this, '{{ item.video }}')">
                 <div class="download-box">
                     <a href="{{ item.download_link }}" download onclick="event.stopPropagation();">get soundpost</a>
                 </div>
@@ -311,7 +311,7 @@
 
         <div class="column">
             {% for item in videos[1::3] %}
-            <div class="video-container" data-filename="{{ item.oriname }}" onclick="swapToVideo(this, '{{ item.video }}', '{{ item.download_link }}')">
+            <div class="video-container" data-filename="{{ item.oriname }}" onclick="swapToVideo(this, '{{ item.video }}')">
                 <div class="download-box">
                     <a href="{{ item.download_link }}" download onclick="event.stopPropagation();">get soundpost</a>
                 </div>
@@ -329,7 +329,7 @@
 
         <div class="column">
             {% for item in videos[2::3] %}
-            <div class="video-container" data-filename="{{ item.oriname }}" onclick="swapToVideo(this, '{{ item.video }}', '{{ item.download_link }}')">
+            <div class="video-container" data-filename="{{ item.oriname }}" onclick="swapToVideo(this, '{{ item.video }}')">
                 <div class="download-box">
                     <a href="{{ item.download_link }}" download onclick="event.stopPropagation();">get soundpost</a>
                 </div>
@@ -373,7 +373,7 @@
 
 
 
-    function swapToVideo(container, videoSrc, downloadLink) {
+    function swapToVideo(container, videoSrc) {
     // Find and remove the thumbnail image inside the container
     const thumbnail = container.querySelector("img");
     if (!thumbnail) return;
@@ -388,12 +388,6 @@
     // Replace the thumbnail with the video
     container.replaceChild(video, thumbnail);
 
-    // Optionally, update the download link if needed
-    const downloadBox = container.querySelector(".download-box a");
-    if (downloadBox) {
-        downloadBox.href = downloadLink;
-        downloadBox.download = "";
-        }
     }
 
 
