@@ -68,8 +68,8 @@ for filename in thumblist:
         fnum = os.path.splitext(filename)[0]
         oriname, oriext, date = get_soundpost_data(fnum)
         if oriext.lower() in IMAGE_EXTENSIONS:
-            oriext = ".webm"  # image extension is irrelevant, we made it into a webm
-        video_name = fnum + oriext
+            newext = ".webm"  # image extension is irrelevant, we made it into a webm
+        video_name = fnum + newext  # 05/26 10:57!!
         video_path = muxed_folder + "/" + video_name
         thumbnail_path = thumbnail_folder + "/" + filename
         dl_link = "/named/" + video_folder + "/" + fnum + oriext + f"?filename={oriname} " + oriext
