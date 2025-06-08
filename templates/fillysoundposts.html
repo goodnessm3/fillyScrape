@@ -12,6 +12,10 @@
             text-align: center; 
             margin: 0; 
             padding: 20px;
+            {% if is_dev %}
+                background-image: url("dev.png");
+                background-repeat: repeat-y|repeat-x;
+			{% endif %}
         }
 
         h1 {

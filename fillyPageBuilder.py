@@ -7,6 +7,18 @@ from urllib.parse import quote
 import datetime
 import logging
 from fillyStats import get_stats
+import subprocess
+
+def get_git_branch():
+    try:
+        return subprocess.check_output(
+            ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+            stderr=subprocess.DEVNULL
+        ).decode().strip()
+    except subprocess.CalledProcessError:
+        return "unknown"
+
+is_dev = get_git_branch() == "dev"
 
 # Define paths
 thumbnail_folder = "thumbs"
@@ -92,7 +104,7 @@ template = env.get_template("fillysoundposts.html")
 
 # Render the template
 updated_time = "Last updated: " + datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S") + " UTC"
-output_html = template.render(videos=videos, makedate=updated_time, stats_string=get_stats())
+output_html = template.render(videos=videos, makedate=updated_time, stats_string=get_stats(), is_dev=is_dev)
 
 # Save to output folder
 os.makedirs(output_folder, exist_ok=True)
