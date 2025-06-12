@@ -9,6 +9,8 @@ import subprocess
 import sqlite3
 import shutil
 import logging
+from fillyCurlCommands import build_curl_command
+import pickle
 
 CONTENT_ROOT = '''https://i.4cdn.org/vt/{filename}{extension}'''  # this is where images are served for vt
 cwd = os.getcwd()  # probably doesn't even need to be absolute paths if we cd into here to run the script lol
@@ -17,6 +19,7 @@ audio_dest = os.path.join(cwd, "audio")
 muxed_dest = os.path.join(cwd, "muxed")
 thumbs_dest = os.path.join(cwd, "thumbs")
 processed_folder = os.path.join(cwd, "processed")
+USER_AGENT = '''"User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0"'''
 
 logging.basicConfig(
     format="%(asctime)s\t%(module)s\t%(message)s",
@@ -36,6 +39,28 @@ cursor.execute("CREATE TABLE IF NOT EXISTS files (hash TEXT PRIMARY KEY, fnumber
 sound_file_getter = re.compile(r'''sound=([^\]]*)''')
 sound_name_getter = re.compile(r'''[^\[]*''')
 
+
+def get_curl_command():
+
+    if not os.path.exists("curl-cmd.pkl"):
+        # retire an old command by deleting the pickle
+        cm = build_curl_command()
+        with open("curl-cmd.pkl", "wb") as f:
+            pickle.dump(cm, f)
+            # save and reuse the command for later, only retire it if we start getting bl0xxed
+    else:
+        with open("curl-cmd.pkl", "rb") as f:
+            cm = pickle.load(f)
+
+    # send the cookie if there is one. Ask for it and save it if not. We delete the cookie
+    # after the end of each downloading session
+
+    if not os.path.exists("cookie.txt"):
+        cm.extend(["-c", "cookie.txt"])
+    else:
+        cm.extend(["-b", "cookie.txt"])
+
+    return cm
 
 def least_recent_op_number():
 
@@ -158,12 +183,16 @@ def dl_soundpost(tup):
 
         try:
             with open(adest, "w") as af:
-                res = subprocess.run(f'''curl -sS {snd}'''.split(" "), stdout=af, stderr=log, timeout=30)
+                runls = f'''curl -sS {snd}'''.split(" ")
+                # vanilla curl command as we have had no issues with catbox yet
+                res = subprocess.run(runls, stdout=af, stderr=log, timeout=30)
                 # curl -sS: silent and show errors
                 result_codes += str(res.returncode)
             with open(vdest, "w") as vf:
-                res = subprocess.run(f'''curl -sS {video}'''.split(" "), stdout=vf, stderr=log, timeout=30)
+                runls = get_curl_command() + [video]  # final argument is video link
+                res = subprocess.run(runls, stdout=vf, stderr=log, timeout=30)
                 result_codes += str(res.returncode)
+                # this will usually succeed but we may download a cloudflare challenge, not the file we wanted
         except OSError:
             my_log("Error opening audio file for writing, maybe the file was named wrong. Aborting.")
             return False
@@ -232,7 +261,11 @@ def save_just_one(fi):
 
     """now a function to take a thread JSON file, archive the first new soundpost it finds, then return
     we'll run this with a cron job to gently scrape the thread every so often
-    once the whole json file is exhausted we'll archive it in the "processed" folder"""
+    once the whole json file is exhausted we'll archive it in the "processed" folder
+
+    Return True if we managed to download a soundpost, False if we went thru the whole
+    list and didn't manage it. This is used to batch up downloads, every time we check,
+    we download everything that is new."""
 
     with open(fi, "r") as f:
         js = json.load(f)
@@ -240,11 +273,11 @@ def save_just_one(fi):
             if a := extract_soundpost(post):
                 b = dl_soundpost(a)
                 if b:
-                    return
+                    return True
 
     if just_one_json():  # prevent premature archival
         my_log("There is only a single .json file currently so we are not archiving it yet.")
-        return
+        return False
 
     _, filename = os.path.split(fi)
     dest = os.path.join(processed_folder, filename)
@@ -254,8 +287,14 @@ def save_just_one(fi):
     
 def update():
 
-    lo = least_recent_op_number()
-    save_just_one(f"{lo}.json")
+    success = True
+    while success:
+        lo = least_recent_op_number()
+        success = save_just_one(f"{lo}.json")  # download everything new until nothing left
+
+    if os.path.exists("cookie.txt"):
+        os.remove("cookie.txt")  # don't let cloudflare's cookie get stale
+
     
     
 if __name__ == "__main__":
