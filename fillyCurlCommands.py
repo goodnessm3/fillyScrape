@@ -33,7 +33,7 @@ def build_curl_command():
     # apparently http1.1 less likely to get fingerprinted
     # save the cookie and re-send it during a burst of downloads
 
-    ls = ["curl", "--http1.1", tl, "-sS", "-H", ua]
+    ls = ["curl", "--http1.1", tl, "-sS", "-H", ua, "-H", "Referer: https://boards.4chan.org/"]
 
     if random.random() > 0.5:
         ls += ["-H", "Accept: text/html,application/xhtml+xml"]

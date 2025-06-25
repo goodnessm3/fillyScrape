@@ -11,6 +11,8 @@ import shutil
 import logging
 from fillyCurlCommands import build_curl_command
 import pickle
+import time
+import random
 
 CONTENT_ROOT = '''https://i.4cdn.org/vt/{filename}{extension}'''  # this is where images are served for vt
 cwd = os.getcwd()  # probably doesn't even need to be absolute paths if we cd into here to run the script lol
@@ -301,4 +303,6 @@ if __name__ == "__main__":
 
     """We are being run by cron to just download a single sound post from the oldest thread .json we have"""
 
+    time.sleep(random.randint(0, 86400))  # avoid running at a regular time
+    # TODO: command line switch to disable random sleep
     update()
