@@ -87,7 +87,7 @@ for filename in thumblist:
         video_path = muxed_folder + "/" + video_name
         thumbnail_path = thumbnail_folder + "/" + filename
         dl_link = "/named/" + video_folder + "/" + fnum + oriext + f"?filename={oriname}" + oriext
-        muxed_link = "/named/" + muxed_folder + f"?filename={get_original_name_only(fnum)}" + oriext
+        muxed_link = "/named/" + muxed_folder + "/" + fnum + oriext + f"?filename={get_original_name_only(fnum)}" + oriext
 
         if os.path.exists(video_path):
             videos.append({"thumbnail": thumbnail_path,
