@@ -86,14 +86,16 @@ for filename in thumblist:
         video_name = fnum + newext  # 05/26 10:57!!
         video_path = muxed_folder + "/" + video_name
         thumbnail_path = thumbnail_folder + "/" + filename
-        dl_link = "/named/" + video_folder + "/" + fnum + oriext + f"?filename={oriname} " + oriext
+        dl_link = "/named/" + video_folder + "/" + fnum + oriext + f"?filename={oriname}" + oriext
+        muxed_link = video_path + f"?filename={get_original_name_only(fnum)}"
 
         if os.path.exists(video_path):
             videos.append({"thumbnail": thumbnail_path,
                            "video": video_path,
                            "download_link": dl_link,
                            "oriname": get_original_name_only(fnum),
-                           "fnum": fnum})
+                           "fnum": fnum,
+                           "muxed_link": muxed_link})
 
     #if "1745768408068768" in filename:
         #breakpoint()
