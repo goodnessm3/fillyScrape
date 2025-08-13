@@ -109,9 +109,17 @@
             height: 1.5em;             /* keep aspect ratio uniform */
             object-fit: contain;
             display: block;           /* removes inline spacing quirks */
-            transform: translateY(21%);
         }
 
+        .download-icon:hover {
+            animation: pulse 0.25s ease forwards; /* run once per hover */
+        }
+
+        @keyframes pulse {
+            0%   { transform: scale(1); }
+            50%  { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
 
 
         .popup-video {
