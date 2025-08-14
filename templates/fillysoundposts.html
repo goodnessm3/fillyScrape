@@ -206,8 +206,19 @@
 
         .tags-box {
             position: absolute;
-            top: 50%; /* center vertically */
+            top: 33%; /* center vertically */
             right: -60px; /* start hidden just outside the right */
+            transform: translateY(-50%); /* perfectly center vertically */
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            transition: right 0.3s ease-in-out;
+        }
+
+        .transcript-box {
+            position: absolute;
+            top: 66%; /* center vertically */
+            right: -80px; /* start hidden just outside the right */
             transform: translateY(-50%); /* perfectly center vertically */
             background: rgba(0, 0, 0, 0.7);
             color: white;
@@ -219,7 +230,19 @@
             right: 0;
         }
 
+        .video-container:hover .transcript-box {
+            right: 0;
+        }
+
         .tags-box button {
+            background: none;
+            border: none;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .transcript-box button {
             background: none;
             border: none;
             color: white;
@@ -293,7 +316,7 @@
 
     <!-- About text box (hidden by default) -->
     <div id="about-box" class="about-box">
-        <p>Scrapes the /flip/ thread for new soundposts daily. You can download the original files here with the correct soundpost filename. Firefox users: Your download will have the wrong filename because of how Firefox handles special characters in headers. Comments or suggestions? post them in the thread along with a cute Filian picture ^_^</p>
+        <p style="max-width: 500px; word-wrap: break-word; white-space: normal;">Scrapes the /flip/ thread for new soundposts daily. You can download the original files here with the correct soundpost filename. Firefox users: Your download will have the wrong filename because of how Firefox handles special characters in headers. Comments or suggestions? post them in the thread along with a cute Filian picture ^_^</p>
         <button onclick="closeBox('about-box')">Close</button>
     </div>
 
@@ -302,17 +325,37 @@
     <!-- About text box (hidden by default) -->
     <div id="stats-box" class="about-box">
         <p>{{stats_string}}</p>
-        <p>tag database: <span id="api-status-text">checking...</span></p>
+        <p>tag and transcript API: <span id="api-status-text">checking...</span></p>
         <button onclick="closeBox('stats-box')">Close</button>
+    </div>
+
+    <!-- About text box (hidden by default) -->
+    <div id="ai-box" class="about-box">
+        <p style="max-width: 500px; word-wrap: break-word; white-space: normal;">AI-generated audio transcripts are not perfect. Search will find videos where all of your words are present in the transcript. Common AI mistakes are "Layna" → "Lena", "Chat" → "Chad", "Filian" → "Filion", etc. "Blelele" is sadly not transcribed correctly :(</p>
+        <button onclick="closeBox('ai-box')">Close</button>
+    </div>
+
+    <!-- About text box (hidden by default) -->
+    <div id="tag-info-box" class="about-box">
+        <p style="max-width: 500px; word-wrap: break-word; white-space: normal;">Tags are community-submitted, meaning nobody uses them lmao</p>
+        <button onclick="closeBox('tag-info-box')">Close</button>
     </div>
 
     <h6>{{makedate}}</h6>
 
-    <div style="display: flex; justify-content: center; margin-top: 10px;">
-  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+    <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
+  <div style="display: flex; align-items: center; gap: 10px;">
     <input type="text" id="search-box" placeholder="Search by original filename..." oninput="filterThumbnails()">
     <button id="filter-tags-button">Filter by Tags</button>
+      <a href="javascript:void(0)" class="about-link" onclick="toggleBox(event, 'tag-info-box')">ℹ️</a>
   </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <a href="javascript:void(0)" class="about-link" onclick="toggleBox(event, 'ai-box')">ℹ️</a>
+      <input type="text" id="transcript-search-box" placeholder="Search video transcript...">
+      <button id="transcript-search-button" onclick="fetchVideosByTranscript()">Search AI transcripts</button>
+    </div>
+
+
 </div>
 
 <div style="display: flex; justify-content: center; margin-top: 5px;">
@@ -343,6 +386,9 @@
                 <div class="tags-box">
                     <button onclick="event.stopPropagation(); openTagForm(this, '{{ item.fnum }}');">tags</button>
                 </div>
+                <div class="transcript-box">
+                    <button onclick="event.stopPropagation(); openTranscript(this, '{{ item.fnum }}');">transcript</button>
+                </div>
                 <img src="{{ item.thumbnail }}" alt="Thumbnail" loading="lazy">
             </div>
             {% endfor %}
@@ -367,6 +413,9 @@
                 <div class="tags-box">
                     <button onclick="event.stopPropagation(); openTagForm(this, '{{ item.fnum }}');">tags</button>
                 </div>
+                <div class="transcript-box">
+                    <button onclick="event.stopPropagation(); openTranscript(this, '{{ item.fnum }}');">transcript</button>
+                </div>
                 <img src="{{ item.thumbnail }}" alt="Thumbnail" loading="lazy">
             </div>
             {% endfor %}
@@ -390,6 +439,9 @@
                 </div>
                 <div class="tags-box">
                     <button onclick="event.stopPropagation(); openTagForm(this, '{{ item.fnum }}');">tags</button>
+                </div>
+                <div class="transcript-box">
+                    <button onclick="event.stopPropagation(); openTranscript(this, '{{ item.fnum }}');">transcript</button>
                 </div>
                 <img src="{{ item.thumbnail }}" alt="Thumbnail" loading="lazy">
             </div>
@@ -842,6 +894,25 @@ function fetchVideosByTags() {
     });
 }
 
+function fetchVideosByTranscript() {
+  const query = document.getElementById("transcript-search-box").value.trim();
+  if (!query) {
+    showAllVideos();
+    return;
+  }
+
+  fetch(`/api/videos/by_transcript?q=${encodeURIComponent(query)}`)
+    .then(res => res.json())
+    .then(data => {
+      const allowedIds = new Set(data.video_ids.map(String));
+      filterDisplayedVideos(allowedIds);
+    })
+    .catch(err => {
+      console.error('Failed to fetch videos by transcript:', err);
+    });
+}
+
+
 function filterDisplayedVideos(allowedIds) {
   document.querySelectorAll('.video-container').forEach(container => {
     const fnum = container.querySelector('button').getAttribute('onclick').match(/'(\d+)'/)[1];
@@ -904,6 +975,59 @@ async function refreshKnownTags() {
 }
 
 
+document.getElementById("transcript-search-box").addEventListener("keypress", function(e) {
+  if (e.key === "Enter") {
+    fetchVideosByTranscript();
+  }
+});
+
+function openTranscript(triggerElement, videoId) {
+    // Remove any existing transcript popups
+    const existingPopup = document.getElementById('dynamic-transcript-box');
+    if (existingPopup) {
+        existingPopup.remove();
+    }
+
+    // Create the popup element
+    const popup = document.createElement('div');
+    popup.id = 'dynamic-transcript-box';
+    popup.style.cssText = `
+        position: absolute;
+        background: black;
+        border: 1px solid white;
+        padding: 10px;
+        max-width: 200px;
+        word-wrap: break-word;
+        z-index: 1000;
+    `;
+    popup.textContent = 'Loading transcript...';
+
+    // Position the popup near the button
+    const rect = triggerElement.getBoundingClientRect();
+    popup.style.left = `${window.scrollX + rect.right + 10}px`;
+    popup.style.top = `${window.scrollY + rect.top}px`;
+
+    document.body.appendChild(popup);
+
+    // Fetch transcript
+    fetch(`/api/videos/${videoId}/transcript/`)
+        .then(res => res.json())
+        .then(data => {
+            popup.textContent = data.transcript || '(No transcript available)';
+        })
+        .catch(err => {
+            console.error('Failed to fetch transcript:', err);
+            popup.textContent = 'Error loading transcript';
+        });
+
+    // Optional: close popup on click elsewhere
+    document.addEventListener('click', function closePopup(e) {
+        if (!popup.contains(e.target) && e.target !== triggerElement) {
+            popup.remove();
+            document.removeEventListener('click', closePopup);
+        }
+    });
+}
 
 
 
