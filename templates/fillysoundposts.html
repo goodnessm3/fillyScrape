@@ -1010,7 +1010,7 @@ function openTranscript(triggerElement, videoId) {
     document.body.appendChild(popup);
 
     // Fetch transcript
-    fetch(`/api/videos/${videoId}/transcript/`)
+    fetch(`/api/videos/${videoId}/transcript`)
         .then(res => res.json())
         .then(data => {
             popup.textContent = data.transcript || '(No transcript available)';
