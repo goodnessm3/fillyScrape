@@ -187,9 +187,13 @@ def dl_soundpost(tup):
             with open(adest, "w") as af:
                 runls = f'''curl -sS {snd}'''.split(" ")
                 # vanilla curl command as we have had no issues with catbox yet
-                res = subprocess.run(runls, stdout=af, stderr=log, timeout=30)
-                # curl -sS: silent and show errors
-                result_codes += str(res.returncode)
+                try:
+                    res = subprocess.run(runls, stdout=af, stderr=log, timeout=30)
+                    # curl -sS: silent and show errors
+                    result_codes += str(res.returncode)
+                except subprocess.TimeoutExpired:
+                    my_log(f"Failed to download {snd}.")
+                    return False
             with open(vdest, "w") as vf:
                 runls = get_curl_command() + [video]  # final argument is video link
                 res = subprocess.run(runls, stdout=vf, stderr=log, timeout=30)
